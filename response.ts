@@ -8,7 +8,7 @@ type HeaderMap =
   };
 
 // ResponseBody is a type of response body.
-type ResponseBody = string | Deno.ReadCloser | Deno.Reader;
+type ResponseBody = string | (Deno.Reader & Deno.Closer) | Deno.Reader;
 
 /*
  *  Types of Response
@@ -31,7 +31,7 @@ export type Response =
 interface HTTPResponse {
   status?: number;
   headers?: Headers;
-  body?: Uint8Array | Deno.ReadCloser | Deno.Reader;
+  body?: Uint8Array | (Deno.Reader & Deno.Closer) | Deno.Reader;
 }
 
 export function processResponse(res: Response): HTTPResponse {
@@ -53,7 +53,7 @@ export function processResponse(res: Response): HTTPResponse {
     rawBody = res;
   }
 
-  let body: Uint8Array | Deno.ReadCloser | Deno.Reader;
+  let body: Uint8Array | (Deno.Reader & Deno.Closer) | Deno.Reader;
   if (typeof rawBody === "string") {
     body = encode(rawBody);
   } else {
@@ -83,8 +83,8 @@ function isNumberResponse(res: Response): res is number {
   return typeof res === "number";
 }
 
-function isReadCloserResponse(res: Response): res is Deno.ReadCloser {
-  const r = res as Deno.ReadCloser;
+function isReadCloserResponse(res: Response): res is Deno.Reader & Deno.Closer {
+  const r = res as Deno.Reader & Deno.Closer;
   return (
     typeof r === "object" &&
     typeof r.read === "function" &&

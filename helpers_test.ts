@@ -1,7 +1,7 @@
 import { assertEquals } from "./vendor/https/deno.land/std/testing/asserts.ts";
 import { App, get } from "./mod.ts";
 import { redirect } from "./helpers.ts";
-const { test, runTests } = Deno;
+const { test } = Deno;
 
 const testPort = 8376;
 const host = `http://localhost:${testPort}`;
@@ -27,6 +27,6 @@ test("Redirection does return new endpoint", async () => {
 });
 
 (async () => {
-  await runTests();
+  
   app.close();
 })();

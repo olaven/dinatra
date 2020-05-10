@@ -1,6 +1,6 @@
 import { assertEquals } from "./vendor/https/deno.land/std/testing/asserts.ts";
 import { App } from "./mod.ts";
-const { test, runTests } = Deno;
+const { test } = Deno;
 
 const testPort = 8376;
 const host = `http://localhost:${testPort}`;
@@ -61,6 +61,6 @@ for (const tc of testCases) {
 }
 
 (async () => {
-  await runTests();
+
   app.close();
 })();

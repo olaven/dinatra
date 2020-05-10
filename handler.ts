@@ -15,6 +15,7 @@ export enum Method {
 export type Context = {
   readonly path: string;
   readonly method: Method;
+  readonly headers: Headers;
   params: Params;
 };
 

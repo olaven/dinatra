@@ -99,6 +99,7 @@ export class App {
     const URI_PARAM_MARKER = ":";
 
     Array.from(map.keys()).forEach((endpoint) => {
+
       if (endpoint.indexOf(URI_PARAM_MARKER) !== -1) {
         const matcher = endpoint.replace(
           REGEX_URI_MATCHES,
@@ -170,10 +171,11 @@ export class App {
 
     //FIXME: find proper solutin for files that are linked from HTML (would default to standard GET and not static)
     if (path.endsWith(".js")) {
+
       return null; // assume this is a static file
     }
 
-    const ctx = { path, method, params };
+    const ctx = { path, method, params, headers: req.headers };
     const res = handler(ctx);
     if (res instanceof Promise) {
       return await (res as Promise<Response>);
@@ -188,7 +190,9 @@ export class App {
   };
 
   public register(...handlerConfigs: HandlerConfig[]) {
+
     for (const { path, method, handler } of handlerConfigs) {
+
       this.handlerMap.get(method)!.set(path, handler);
     }
   }
@@ -238,8 +242,8 @@ export class App {
   }
 }
 
-function isReadCloser(obj: any): obj is Deno.ReadCloser {
-  const o = obj as Deno.ReadCloser;
+function isReadCloser(obj: any): obj is (Deno.Reader & Deno.Closer) {
+  const o = obj as (Deno.Reader & Deno.Closer);
   return (
     typeof o === "object" &&
     typeof o.read === "function" &&

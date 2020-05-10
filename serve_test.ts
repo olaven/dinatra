@@ -1,7 +1,7 @@
 import { assertEquals } from "./vendor/https/deno.land/std/testing/asserts.ts";
 import { App, get, post } from "./mod.ts";
 import { HandlerConfig, Method } from "./handler.ts";
-const { test, runTests } = Deno;
+const { test } = Deno;
 
 interface RequestInit {
   body?: string | FormData;
@@ -9,8 +9,7 @@ interface RequestInit {
   method?: string;
 }
 
-const testPort = 8376;
-const host = `http://localhost:${testPort}`;
+
 
 interface testCase {
   name: string;
@@ -114,10 +113,13 @@ const testCases: Array<testCase> = [
   // },
 ];
 
-const app = new App(testPort);
-app.serve();
+
 
 for (const tc of testCases) {
+  
+  const app = new App(testPort);
+  app.serve();
+  
   test({
     name: tc.name,
     async fn() {
@@ -141,9 +143,6 @@ for (const tc of testCases) {
       app.unregister(path, method);
     },
   });
-}
 
-(async () => {
-  await runTests();
   app.close();
-})();
+}
