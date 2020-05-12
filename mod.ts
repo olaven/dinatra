@@ -85,12 +85,14 @@ export class App {
     method: Method,
     req: ServerRequest,
   ): Promise<Response | null> {
+
     const map = this.handlerMap.get(method);
     if (!map) {
       return null;
     }
 
     const params: Params = {};
+    let body: Object = {};
 
     let handler;
 
@@ -155,13 +157,11 @@ export class App {
           Object.assign(params, parseURLSearchParams(decodedBody));
           break;
         case "application/json":
-          let obj: Object;
           try {
-            obj = JSON.parse(decodedBody);
+            body = JSON.parse(decodedBody);
           } catch (e) {
             throw ErrorCode.BadRequest;
           }
-          Object.assign(params, obj);
           break;
         case "application/octet-stream":
           // FIXME: we skip here for now, it should be implemented when Issue #41 resolved.
@@ -175,7 +175,10 @@ export class App {
       return null; // assume this is a static file
     }
 
-    const ctx = { path, method, params, headers: req.headers };
+    const headers = req.headers; 
+    const ctx = { path, method, params, headers, body: JSON.stringify(body) };
+    console.log("entire context: " ,ctx);
+
     const res = handler(ctx);
     if (res instanceof Promise) {
       return await (res as Promise<Response>);

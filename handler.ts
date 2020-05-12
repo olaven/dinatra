@@ -17,6 +17,7 @@ export type Context = {
   readonly method: Method;
   readonly headers: Headers;
   params: Params;
+  body: string;
 };
 
 export type Handler = BasicHandler | AsyncHandler;
