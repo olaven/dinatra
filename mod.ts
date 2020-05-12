@@ -177,7 +177,6 @@ export class App {
 
     const headers = req.headers; 
     const ctx = { path, method, params, headers, body: JSON.stringify(body) };
-    console.log("entire context: " ,ctx);
 
     const res = handler(ctx);
     if (res instanceof Promise) {
