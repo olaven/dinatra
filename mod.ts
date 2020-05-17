@@ -6,7 +6,7 @@ import {
 import { Response, processResponse } from "./response.ts";
 import { ErrorCode, getErrorMessage } from "./errors.ts";
 import { Method, Handler, HandlerConfig } from "./handler.ts";
-import { Params, parseURLSearchParams } from "./params.ts";
+import { Params, parseURLSearchParams } from "./params.ts";  
 import { defaultPort } from "./constants.ts";
 import { detectedContentType } from "./mime.ts";
 export { contentType, detectedContentType } from "./mime.ts";
@@ -215,6 +215,7 @@ export class App {
         throw ErrorCode.NotFound;
       }
       const [path, search] = req.url.split(/\?(.+)/);
+
       try {
         r = (await this.respond(path, search, method, req)) ||
           (this.staticEnabled && (await this.respondStatic(path))) ||
