@@ -2,14 +2,14 @@ const { listen, stat, open, readAll } = Deno;
 import {
   Server,
   ServerRequest,
-} from './vendor/https/deno.land/std/http/server.ts';
-import { Response, processResponse } from './response.ts';
-import { ErrorCode, getErrorMessage } from './errors.ts';
-import { Method, Handler, HandlerConfig } from './handler.ts';
-import { Params, parseURLSearchParams } from './params.ts';
-import { defaultPort } from './constants.ts';
-import { detectedContentType } from './mime.ts';
-export { contentType, detectedContentType } from './mime.ts';
+} from "./vendor/https/deno.land/std/http/server.ts";
+import { Response, processResponse } from "./response.ts";
+import { ErrorCode, getErrorMessage } from "./errors.ts";
+import { Method, Handler, HandlerConfig } from "./handler.ts";
+import { Params, parseURLSearchParams } from "./params.ts";  
+import { defaultPort } from "./constants.ts";
+import { detectedContentType } from "./mime.ts";
+export { contentType, detectedContentType } from "./mime.ts";
 export {
   get,
   post,
@@ -19,8 +19,9 @@ export {
   options,
   link,
   unlink,
-} from './handler.ts';
-export { Response } from './response.ts';
+} from "./handler.ts";
+export { redirect } from "./helpers.ts";
+export { Response } from "./response.ts";
 
 type HandlerMap = Map<string, Map<string, Handler>>; // Map<method, Map<path, handler>>
 
@@ -38,7 +39,7 @@ export class App {
   constructor(
     public readonly port = defaultPort,
     public readonly staticEnabled = true,
-    public readonly publicDir = 'public'
+    public readonly publicDir = "public",
   ) {
     for (const method in Method) {
       this.handlerMap.set(method, new Map());
@@ -46,29 +47,31 @@ export class App {
   }
 
   // respondStatic returns Response with static file gotten from a path. If a given path didn't match, this method returns null.
+  //FIXME: does not get js file in public directory, linked from HTML -> responds from normal
   private async respondStatic(path: string): Promise<Response | null> {
     let fileInfo: Deno.FileInfo | null = null;
     let staticFilePath = `${this.publicDir}${path}`;
+
     try {
       fileInfo = await stat(staticFilePath);
     } catch (e) {
       // Do nothing here.
     }
-    if (fileInfo && fileInfo.isDirectory()) {
-      staticFilePath += '/index.html';
+    if (fileInfo && fileInfo.isDirectory) {
+      staticFilePath += "/index.html";
       try {
         fileInfo = await stat(staticFilePath);
       } catch (e) {
         fileInfo = null; // FileInfo is not needed any more.
       }
     }
-    if (!fileInfo || !fileInfo.isFile()) {
+    if (!fileInfo || !fileInfo.isFile) {
       return null;
     }
     return [
       200,
       {
-        'Content-Length': fileInfo.size.toString(),
+        "Content-Length": fileInfo.size.toString(),
         ...detectedContentType(staticFilePath),
       },
       await open(staticFilePath),
@@ -80,26 +83,29 @@ export class App {
     path: string,
     search: string,
     method: Method,
-    req: ServerRequest
+    req: ServerRequest,
   ): Promise<Response | null> {
+
     const map = this.handlerMap.get(method);
     if (!map) {
       return null;
     }
 
     const params: Params = {};
+    let body: Object = {};
 
     let handler;
 
     const REGEX_URI_MATCHES = /(:[^/]+)/g;
-    const REGEX_URI_REPLACEMENT = '([^/]+)';
-    const URI_PARAM_MARKER = ':';
+    const REGEX_URI_REPLACEMENT = "([^/]+)";
+    const URI_PARAM_MARKER = ":";
 
-    Array.from(map.keys()).forEach(endpoint => {
+    Array.from(map.keys()).forEach((endpoint) => {
+
       if (endpoint.indexOf(URI_PARAM_MARKER) !== -1) {
         const matcher = endpoint.replace(
           REGEX_URI_MATCHES,
-          REGEX_URI_REPLACEMENT
+          REGEX_URI_REPLACEMENT,
         );
         const matches = path.match(`^${matcher}$`);
 
@@ -109,7 +115,7 @@ export class App {
 
         const names = endpoint
           .match(REGEX_URI_MATCHES)!
-          .map(name => name.replace(URI_PARAM_MARKER, ''));
+          .map((name) => name.replace(URI_PARAM_MARKER, ""));
 
         matches.slice(1).forEach((m, i) => {
           params[names[i]] = m;
@@ -132,40 +138,46 @@ export class App {
         Object.assign(params, parseURLSearchParams(search));
       }
     } else {
-      const rawContentType =
-        req.headers.get('content-type') || 'application/octet-stream';
+      const rawContentType = req.headers.get("content-type") ||
+        "application/octet-stream";
       const [contentType, ...typeParamsArray] = rawContentType
-        .split(';')
-        .map(s => s.trim());
+        .split(";")
+        .map((s) => s.trim());
       const typeParams = typeParamsArray.reduce((params, curr) => {
-        const [key, value] = curr.split('=');
+        const [key, value] = curr.split("=");
         params[key] = value;
         return params;
       }, {} as { [key: string]: string });
 
-      const decoder = new TextDecoder(typeParams['charset'] || 'utf-8'); // TODO: downcase `charset` key
+      const decoder = new TextDecoder(typeParams["charset"] || "utf-8"); // TODO: downcase `charset` key
       const decodedBody = decoder.decode(await readAll(req.body));
 
       switch (contentType) {
-        case 'application/x-www-form-urlencoded':
+        case "application/x-www-form-urlencoded":
           Object.assign(params, parseURLSearchParams(decodedBody));
           break;
-        case 'application/json':
-          let obj: Object;
+        case "application/json":
           try {
-            obj = JSON.parse(decodedBody);
+            body = JSON.parse(decodedBody);
           } catch (e) {
             throw ErrorCode.BadRequest;
           }
-          Object.assign(params, obj);
           break;
-        case 'application/octet-stream':
+        case "application/octet-stream":
           // FIXME: we skip here for now, it should be implemented when Issue #41 resolved.
           break;
       }
     }
 
-    const ctx = { path, method, params };
+    //FIXME: find proper solutin for files that are linked from HTML (would default to standard GET and not static)
+    if (path.endsWith(".js")) {
+
+      return null; // assume this is a static file
+    }
+
+    const headers = req.headers; 
+    const ctx = { path, method, params, headers, body: JSON.stringify(body) };
+
     const res = handler(ctx);
     if (res instanceof Promise) {
       return await (res as Promise<Response>);
@@ -175,12 +187,14 @@ export class App {
 
   // Deprecated
   public handle = (...args: HandlerConfig[]) => {
-    console.error('handle is deprecated. Please use register instead of this.');
+    console.error("handle is deprecated. Please use register instead of this.");
     this.register(...args);
   };
 
   public register(...handlerConfigs: HandlerConfig[]) {
+
     for (const { path, method, handler } of handlerConfigs) {
+
       this.handlerMap.get(method)!.set(path, handler);
     }
   }
@@ -190,7 +204,7 @@ export class App {
   }
 
   public async serve() {
-    const hostname = '0.0.0.0';
+    const hostname = "0.0.0.0";
     const listener = listen({ hostname, port: this.port });
     console.log(`listening on http://${hostname}:${this.port}/`);
     this.server = new Server(listener);
@@ -201,9 +215,9 @@ export class App {
         throw ErrorCode.NotFound;
       }
       const [path, search] = req.url.split(/\?(.+)/);
+
       try {
-        r =
-          (await this.respond(path, search, method, req)) ||
+        r = (await this.respond(path, search, method, req)) ||
           (this.staticEnabled && (await this.respondStatic(path))) ||
           undefined;
         if (!r) {
@@ -211,7 +225,7 @@ export class App {
         }
       } catch (err) {
         let status = ErrorCode.InternalServerError;
-        if (typeof err === 'number') {
+        if (typeof err === "number") {
           status = err;
         } else {
           console.error(err);
@@ -231,11 +245,11 @@ export class App {
   }
 }
 
-function isReadCloser(obj: any): obj is Deno.ReadCloser {
-  const o = obj as Deno.ReadCloser;
+function isReadCloser(obj: any): obj is (Deno.Reader & Deno.Closer) {
+  const o = obj as (Deno.Reader & Deno.Closer);
   return (
-    typeof o === 'object' &&
-    typeof o.read === 'function' &&
-    typeof o.close === 'function'
+    typeof o === "object" &&
+    typeof o.read === "function" &&
+    typeof o.close === "function"
   );
 }

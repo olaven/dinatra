@@ -1,21 +1,23 @@
-import { Response } from './response.ts';
-import { Params } from './params.ts';
+import { Response } from "./response.ts";
+import { Params } from "./params.ts";
 
 export enum Method {
-  GET = 'GET',
-  POST = 'POST',
-  PUT = 'PUT',
-  PATCH = 'PATCH',
-  DELETE = 'DELETE',
-  OPTIONS = 'OPTIONS',
-  LINK = 'LINK',
-  UNLINK = 'UNLINK',
+  GET = "GET",
+  POST = "POST",
+  PUT = "PUT",
+  PATCH = "PATCH",
+  DELETE = "DELETE",
+  OPTIONS = "OPTIONS",
+  LINK = "LINK",
+  UNLINK = "UNLINK",
 }
 
 export type Context = {
   readonly path: string;
   readonly method: Method;
+  readonly headers: Headers;
   params: Params;
+  body: string;
 };
 
 export type Handler = BasicHandler | AsyncHandler;

@@ -1,14 +1,14 @@
-import { encode } from './vendor/https/deno.land/std/strings/mod.ts';
+import { encode } from "./vendor/https/deno.land/std/encoding/utf8.ts";
 
 // HeaderMap is a type of response headers.
 type HeaderMap =
   | Headers
   | {
-      [key: string]: any;
-    };
+    [key: string]: any;
+  };
 
 // ResponseBody is a type of response body.
-type ResponseBody = string | Deno.ReadCloser | Deno.Reader;
+type ResponseBody = string | (Deno.Reader & Deno.Closer) | Deno.Reader;
 
 /*
  *  Types of Response
@@ -31,13 +31,13 @@ export type Response =
 interface HTTPResponse {
   status?: number;
   headers?: Headers;
-  body?: Uint8Array | Deno.ReadCloser | Deno.Reader;
+  body?: Uint8Array | (Deno.Reader & Deno.Closer) | Deno.Reader;
 }
 
 export function processResponse(res: Response): HTTPResponse {
   let status = 200;
   let headerMap: HeaderMap = {};
-  let rawBody: ResponseBody = '';
+  let rawBody: ResponseBody = "";
 
   if (isStatusHeadersBodyResponse(res)) {
     [status, headerMap, rawBody] = res;
@@ -53,8 +53,8 @@ export function processResponse(res: Response): HTTPResponse {
     rawBody = res;
   }
 
-  let body: Uint8Array | Deno.ReadCloser | Deno.Reader;
-  if (typeof rawBody === 'string') {
+  let body: Uint8Array | (Deno.Reader & Deno.Closer) | Deno.Reader;
+  if (typeof rawBody === "string") {
     body = encode(rawBody);
   } else {
     body = rawBody;
@@ -68,7 +68,7 @@ export function processResponse(res: Response): HTTPResponse {
 }
 
 function isStatusHeadersBodyResponse(
-  res: Response
+  res: Response,
 ): res is StatusHeadersBodyResponse {
   const r = res as StatusHeadersBodyResponse;
   return Array.isArray(r) && r.length === 3;
@@ -80,23 +80,23 @@ function isStatusBodyResponse(res: Response): res is StatusBodyResponse {
 }
 
 function isNumberResponse(res: Response): res is number {
-  return typeof res === 'number';
+  return typeof res === "number";
 }
 
-function isReadCloserResponse(res: Response): res is Deno.ReadCloser {
-  const r = res as Deno.ReadCloser;
+function isReadCloserResponse(res: Response): res is Deno.Reader & Deno.Closer {
+  const r = res as Deno.Reader & Deno.Closer;
   return (
-    typeof r === 'object' &&
-    typeof r.read === 'function' &&
-    typeof r.close === 'function'
+    typeof r === "object" &&
+    typeof r.read === "function" &&
+    typeof r.close === "function"
   );
 }
 
 function isReaderResponse(res: Response): res is Deno.Reader {
   const r = res as Deno.Reader;
-  return typeof r === 'object' && typeof r.read === 'function';
+  return typeof r === "object" && typeof r.read === "function";
 }
 
 function isStringResponse(res: Response): res is string {
-  return typeof res === 'string';
+  return typeof res === "string";
 }
